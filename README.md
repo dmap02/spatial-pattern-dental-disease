@@ -7,13 +7,14 @@ Low salivary flow, or hyposalivation, is associated with an increased incidence 
 # Authors: 
 Diana M. Proctor1,2, Christof Seiler 3,6, Adam R. Burns1, Samuel Walker4, Tina Jung4, Jonathan Weng4, Shanne Sastiel4, Yoga Rajendran4, Yvonne Kapila4, Meredith E. Millman4, Gary C. Armitage4, Peter M. Loomer5, Susan P. Holmes6, Mark I. Ryder4, David A. Relman1,7,8*
 Affiliations
-1Division of Infectious Disease & Geographic Medicine, Department of Medicine, Stanford University School of Medicine, Stanford, CA 94305 USA 
-2National Human Genome Research Institute, National Institutes of Health, Bethesda, MD 20892 USA 
-3Department of Data Science and Knowledge Engineering, Mathematics Centre Maastricht, Maastricht University, The Netherlands 
-4Division of Periodontology, University of California, San Francisco School of Dentistry, San Francisco, CA 94143 USA 
-5 School of Dentistry, University of Texas San Antonio, San Antonio, TX 78249 USA 
-6Department of Statistics, Stanford University, Stanford, CA 94305 USA 
-7Infectious Diseases Section, Veterans Affairs Palo Alto Health Care System, Palo Alto, CA 94304 USA 
-8Department of Microbiology & Immunology, Stanford University School of Medicine, Stanford, CA 94305 USA 
+
+- 1Division of Infectious Disease & Geographic Medicine, Department of Medicine, Stanford University School of Medicine, Stanford, CA 94305 USA 
+- 2National Human Genome Research Institute, National Institutes of Health, Bethesda, MD 20892 USA 
+- 3Department of Data Science and Knowledge Engineering, Mathematics Centre Maastricht, Maastricht University, The Netherlands 
+- 4Division of Periodontology, University of California, San Francisco School of Dentistry, San Francisco, CA 94143 USA 
+- 5 School of Dentistry, University of Texas San Antonio, San Antonio, TX 78249 USA 
+- 6Department of Statistics, Stanford University, Stanford, CA 94305 USA 
+- 7Infectious Diseases Section, Veterans Affairs Palo Alto Health Care System, Palo Alto, CA 94304 USA 
+- 8Department of Microbiology & Immunology, Stanford University School of Medicine, Stanford, CA 94305 USA 
 
 
