@@ -15,5 +15,5 @@ Affiliations
 6Department of Statistics, Stanford University, Stanford, CA 94305 USA 
 7Infectious Diseases Section, Veterans Affairs Palo Alto Health Care System, Palo Alto, CA 94304 USA 
 8Department of Microbiology & Immunology, Stanford University School of Medicine, Stanford, CA 94305 USA 
-*Corresponding author: David A. Relman: relman@stanford.edu; Address: Encina E209, 616 Jane Stanford Way, Stanford, California 94305-6165; Phone: 650-736-6822; Fax: 650-852-3291
+
 
