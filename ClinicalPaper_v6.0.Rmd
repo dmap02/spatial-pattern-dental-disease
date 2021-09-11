@@ -1,26 +1,43 @@
 ---
-title: "Site-specific impact of low salivary flow on measures of oral health"
+title: "Shifts in the spatial patterns of dental disease in patients with low salivary flow are accompanied by increased rates of microbial migration"
 author: "Diana Proctor, Samuel Walker, Christof Seiler"
 date: "06/28/2020"
 output: html_document
 ---
 last updated: `r format(Sys.Date(), format="%B %d %Y")`
 
-These are the figures that we are targeting for submission to the Journal of Dental Resesarch.
 
-Data were collected from 152 participants who were screened into 2 cohorts: the low flow cohort (N = 33) consisted of individuals with a presumptive diagnosis of the autoimmune disorder Sjögren’s Syndrome (SS) while the control cohort (N = 119) consisted of otherwise healthy controls. The complete set of inclusion and exclusion criteria for each cohort is provided as supplementary data (Supplementary Table 1). 
- 
-Gender identity, race, and ethnicity did not significantly differ between the control and low flow cohorts (Chisquare-tests, p > 0.1) (Supplementary Table 2). The majority of subjects in both cohorts were White or Asian and did not identify as Hispanic or Latino. A substantial sex bias was seen in both cohorts: roughly 62% of the control cohort identified as female while 93% of the low flow cohort identified as female, consistent with the known sex bias in the occurrence of Sjogren Syndrome
+Title: Shifts in the spatial patterns of dental disease in patients with low salivary flow are accompanied by increased rates of microbial migration 
+
+Target: Journal of Dental Research
+
+Diana M. Proctor1,2, Christof Seiler 3,6, Adam R. Burns1, Samuel Walker4, Tina Jung4, Jonathan Weng4, Shanne Sastiel4, Yoga Rajendran4, Yvonne Kapila4, Meredith E. Millman4, Gary C. Armitage4, Peter M. Loomer5, Susan P. Holmes6, Mark I. Ryder4, David A. Relman1,7,8*
+
+Affiliations
+
+- 1Division of Infectious Disease & Geographic Medicine, Department of Medicine, Stanford University School of Medicine, Stanford, CA 94305 USA 
+- 2National Human Genome Research Institute, National Institutes of Health, Bethesda, MD 20892 USA 
+- 3Department of Data Science and Knowledge Engineering, Mathematics Centre Maastricht, Maastricht University, The Netherlands 
+- 4Division of Periodontology, University of California, San Francisco School of Dentistry, San Francisco, CA 94143 USA 
+- 5 School of Dentistry, University of Texas San Antonio, San Antonio, TX 78249 USA 
+- 6Department of Statistics, Stanford University, Stanford, CA 94305 USA 
+- 7Infectious Diseases Section, Veterans Affairs Palo Alto Health Care System, Palo Alto, CA 94304 USA 
+- 8Department of Microbiology & Immunology, Stanford University School of Medicine, Stanford, CA 94305 USA 
 
 
-### Things to do
-- the PD and BOP regressions need to be changed to ordinal or logistic regression since they are not close to normal and BOP is (0,1)
+**Abstract**
+Low salivary flow, or hyposalivation, is associated with an increased incidence of dental caries and a shift in their location from biting surfaces towards coronal and root surfaces. However, the relationship between salivary flow and periodontal disease is less clear. To identify clinical indicators of low salivary flow -- including the spatial pattern of dental and periodontal disease, features of the supra- and subgingival microbiota, and symptoms of dry mouth -- we enrolled individuals into two cohorts. The low flow cohort (N = 32) consisted of individuals with a presumptive diagnosis of the autoimmune disorder Sjögren’s Syndrome (SS) while the control cohort (N = 119) consisted of healthy controls. We constructed a series of tooth-specific linear models to quantify the extent to which patient cohort, age, and unstimulated whole salivary flow rate (UWS-FR), independent of each other, are associated with dental and periodontal disease at each tooth. While age and a diagnosis of SS correlated with the site-specific increment of disease so too did UWS-FR. Not only were lower UWS-FRs associated with a greater number of decayed, missing, or filled surfaces at 21 teeth, but they were also associated with increased recession, as measured by clinical attachment loss (CAL), at 10 teeth. In addition, we examined microbiota community structure at different tooth sites using data from 427 subgingival and supragingival samples of 6 individuals and found that microbial dispersal is reduced in patients with low salivary flow, but only at supragingival and not at subgingival sites. Finally, we found that complaints by subjects of a negative impact on overall quality of life were associated with a UWS-FR less than 0.1 mL/min. Overall, our results suggest that novel predictors of hyposalivation can be identified by integrating clinical, microbial, and patient history data.
+
+**Nice tutorials**
+
+- http://pages.stat.wisc.edu/~yandell/R_for_data_sciences/curate/tidyverse.html
+- https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/
+- http://userweb.eng.gla.ac.uk/umer.ijaz/bioinformatics/ggplot2/CCA.R
 
 
-- This is useful: http://pages.stat.wisc.edu/~yandell/R_for_data_sciences/curate/tidyverse.html
 
 
-Flow rate for 39 came from Day 1 not the ESE; the missing birthdays were recovered from REDCap track changes since Ava and Danielle made undocumented deletions of the provided birthdays.
+
 ```{r, message=FALSE, warning=FALSE, error=FALSE}
 #load required packages
 library("easypackages")
@@ -75,7 +92,8 @@ opts_chunk$set(fig.width=12, fig.height=6,
                echo=TRUE, warning=FALSE, message=FALSE, error = FALSE)
 ```
 
-https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/
+Let's read in the clinical datasets
+
 ```{r}
 #read in data about pids and cohort
 pids <- read.csv(file="~/Dropbox/oral-clinical-data-analysis-data/cohort_20191019.csv") #152 row
@@ -129,10 +147,10 @@ perio_map$bop_orderNorm  =orderNorm(perio_map$bop)$x.t
 
 ### Figure 1: Description of the population flow rates and age
 
-Figure 1: Gardner-Altman estimation plots reveal significant demographic and clinical differences between low flow and control cohorts. Data for control and low flow cohort patient Swarm plots of a) uws-fr, b) age, c) dmfs, d) cal and e) gm.cej, f) bop, and g) PD are plotted are plotted on the left-aligned axis. The right-aligned axis reveals the point estimate of the unpaired mean difference between groups, surrounded by their 95% confidence intervals (95% CI).
+Figure 1: Gardner-Altman estimation plots reveal significant demographic and clinical differences between low flow and control cohorts. Data for control and low flow cohort patient Swarm plots of a) age b) UWS-FR, c) DMFS, d) CAL e) GM-CEJ, f) BOP and g) PD are plotted on the left-aligned axis. The right-aligned axis reveals the point estimate of the unpaired mean difference between groups, surrounded by their 95% confidence intervals (95% CI).
 
-These data indicate that while probing depths are trend towards higher average PDs in the low flow cohort compared to the controls. BOP did not appear to differ between the two groups.
-```{r, Figure1, sfig.height=8, fig.width=6}
+
+```{r, Figure1, fig.height=8, fig.width=8}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Figure1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define a function to summarize the clinical data
@@ -305,6 +323,7 @@ Figure1
 ggsave(Figure1, file="~/Dropbox/oral-clinical-data-analysis-ms/Figure1.png", width=10, height=12, units="in", dpi=300)
 ```
 
+
 How many "control" subjects have flow rates less than 0.3? 
 
 - we see that 35 subjects have flow rates less than 0.3
@@ -328,19 +347,18 @@ control_N0.1 = subset(uwsfr, aim %in% c(1, 2)) %>%
 ### Supplementary Table 1: inclusion and exclusion criteria
 Note that these are drawn from the final version of the consent forms.
 
-```{r, eval=FALSE}
-![Supplementary Table 1: Inclusion and Exclusion Criteria.](/Users/dmap/Dropbox/oral-clinical-data-analysis-ms/Inclusion_exclusion.png)
-```
+
+Sjogren's Syndrome (SS) subjects were included in the study if they were adults over 18 years old, complained of dry mouth, and had been diagnosed at least three months ago with Sjogren’s Syndrome as per the American European Consensus Criteria37 or the American College of Rheumatology Classification Criteria.38 The diagnosis was confirmed with doctor’s note at a later appointment. The diagnosis date of SS was also collected verbally and verified with subjects’ documentation. Otherwise healthy control subjects were included in the study if they were healthy, non-smoking adults over the age of 18. 
+
+Exclusion criteria for the SS group were: 1) having fewer than 15 non-implant teeth, 2) smoke or use chewing tobacco or snuff or quit using tobacco products within the 6 months preceding enrollment, 3) being treated by a physician for an uncontrolled chronic medical condition, 4) have symptoms of or treatment of asthma or acid reflux in the last 3 months, 5) history of radiation therapy to the head or neck, 6) history of oral, systemic antibiotics or antifungals use within the 6 month period preceding enrollment, 7) required to take antibiotics before dental treatment, 8) history of stimulant or heroin abuse or of eating disorders, 9) lactating, pregnant, or intending to become pregnant, 10) any dental treatment during the one month period preceding enrollment and cannot or will not abstain from dental treatments during their enrollment, 11) have fixed dental appliance (retainers, fixed dentures, braces, orthodontic wires), 12) periodontitis, candidiasis, halitosis, tooth pain, or any other disease in the mouth (to patient’s knowledge), 13) diagnosed with Sjogren’s syndrome  by the American European Consensus Criteria [37] or the American College of Rheumatology Classification Criteria38 fewer than 3 months prior to the date of enrollment.
+
+Exclusion criteria for the control group were: 1) having fewer than 15 natural, non-implant teeth. 2) missing both central incisors, both canines, or both first molars in either the maxilla or the mandible, 3) crown or implant replacing both central incisors, both canines, or both first molars in either the maxilla or the mandible, 4) currently being treated by a physician for any chronic medical condition, including asthma and acid reflux, 5) history of radiation therapy to the head or neck, 6) take any medication on a daily basis other than birth control, 7) history of oral, systemic antibiotics or antifungals use within the 6 month period preceding enrolment, 8) required to take antibiotics before dental treatment, 9) history of stimulant or heroin abuse or of eating disorders 10) lactating, pregnant, or intending to become pregnant, 11) any dental treatment during the 1 month period preceding enrollment and cannot or will not abstain from dental treatments during their enrollment, 12) fixed dental appliance (retainers, fixed dentures, braces, orthodontic wires), 13) experienced dry mouth for a full week at any time in the past 6 months, 14) periodontitis, candidiasis, halitosis, tooth pain, or any other disease in the mouth (to patient’s knowledge).
 
 ### Supplementary Table 2: Gender identity, race, and ethnicity does not differ between cohorts
 Chi-square tests indicate that the distribution of patients in each cohort didn't differ with respect to gender, race, or ethnicity.
 
 
-```{r, eval=FALSE}
-#![Supplementary Table 2: Demographic #Information](/Users/dmap/Dropbox/oral-clinical-data-analysis-ms/demographic.png){width=65%}
-```
-
-
+We have demographic data for 33 people, but actual data for only 32.
 ```{r}
 #read in the race data and perform chi-square tets
 race.df = read.csv("~/Dropbox/oral-clinical-data-analysis-data/race_df.csv")[1:7,1:3]
@@ -358,15 +376,10 @@ chisq.test(gender.df$Control, gender.df$Low.Flow)
 ```
 
 
-### Figure 2: Spatial model
-
-A linear model was applied to data subsetted by universal tooth number excluding wisdom teeth (Teeth# 1,16,17,32). The response variables used were DMFS Score, CAL, PD, GM-CEJ, and BOP. The predictor variables used were Age, Cohort, UWS-FR, and Cohort:UWS-FR. The coefficients and confidence intervals for each tooth was plotted for each linear model. 
-
-a. The DMFS Score response variable had higher regression coefficients in the posterior teeth (Teeth #'s 2-5, 12-15, 18-21, 28-31) when compared to the anterior teeth (Teeth #'s 6-11, 22-27) with respect to the Age predictor variable. The coefficients resulting from the effect of the Cohort predictor variable were highest in teeth 2-5 and 12. All of the coefficients of the maxillary teeth (Teeth# 2-15) and their respective confidence intervals were found to be greater than 0. Only two teeth (Teeth #'s 18, 29) had coefficients and confidence intervals, resulting from the UWS-FR effect, that did not include 0. The tooth 18 coefficient was less than 0, while the tooth 29 coefficient was greater than 0. The interaction of Cohort and UWS-FR resulted in having positive coefficients, whos confidence intervals did not overlap 0, only for teeth 19 and 30. Ten teeth in the maxilla (Teeth #'s 2, 4, 5, 7-12) and 8 in the mandible (Teeth #'s 15, 20-22, and 25-29) all had negative regression coefficients whose confidence intervals did not overlap 0. 
+### Figure 2: we have lots of set up to do figure the spatial modeling
 
 
-
-##### Let's see up the shared elements of the linear models
+Let's define some functions to generate the linear models
 ```{r, lme setup}
 #set up the vector for teeth
 tooth.model = c(rep(2:15, each=5), rep(18:31, each=5))
@@ -409,71 +422,72 @@ plot_age <- function(df, model){
     geom_errorbar(aes(ymin = conf.low , ymax = conf.high)) +
     coord_flip() +
     ggtitle(paste0(model, " ", "~ Age")) +
-    labs(x = "Universal Tooth Number", y = "Young <--> Old", color = "Tooth Class") 
+    labs(x = "Universal Tooth Number", y = "Estimate", color = "Tooth Class") 
 }
 
 #set up plot for term cohort and model
  #+ylim(-1.6, 1.7)
 plot_cohort <- function(df, model){
-  p <- ggplot(filter(df, term == "cohort"), aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
+  p <- ggplot(filter(df, term == "cohort"), 
+              aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
     geom_point(size=3) +
     geom_hline(yintercept = 0, color = "gray") +
     geom_vline(xintercept = 16.5, color = "gray", linetype="dotted") +
     geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
     coord_flip() +
     ggtitle(paste0(model, " ", "~ Cohort")) +
-    labs(x = "Universal Tooth Number", y = "Control <--> Sjogrens", color = "Tooth Class")
+    labs(x = "Universal Tooth Number", y = "Estimate", color = "Tooth Class")
 }
 
 #plot the term uwsfr and the model
 #+ylim(-1.1, 1)
 plot_flow <- function(df, model) {
-  p  <- ggplot(filter(df, term == "UWS-FR"), aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
+  p  <- ggplot(filter(df, term == "UWS-FR"), 
+               aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
     geom_point(size=3) +
     geom_hline(yintercept = 0, color = "gray") +
     geom_vline(xintercept = 16.5, color = "gray", linetype="dotted") +
     geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
     coord_flip() +
     ggtitle(paste0(model, " ", "~ UWS-FR")) +
-    labs(x = "Universal Tooth Number", y = "Low UWS-FR <--> High UWS-FR", color = "Tooth Class") 
+    labs(x = "Universal Tooth Number", y = "Estimate", color = "Tooth Class") 
 }
 
 #plot the interaction
 #ylim(-4, 4)
 plot_interaction <- function(df, model) {
-  p <- ggplot(filter(df, term == "Cohort:UWS-FR"), aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
+  p <- ggplot(filter(df, term == "Cohort:UWS-FR"), 
+              aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
     geom_point(size=3) +
     geom_hline(yintercept = 0, color = "gray") +
     geom_vline(xintercept = 16.5, color = "gray", linetype="dotted") +
     geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
     coord_flip() +
     ggtitle(paste0(model, " ", "~ Cohort:UWS-FR")) +
-    labs(x = "Universal Tooth Number", y = "Low UWS-FR <--> High UWS-FR", color = "Tooth Class") 
+    labs(x = "Universal Tooth Number", y = "Estimate", color = "Tooth Class") 
 }
 ```
 
 
-### Look at DMFS
-
-
-Compared to those in the low flow cohort, control subjects had fewer caries at several anterior teeth in the maxilla (teeth 6, 8, 11) and mandible (teeth 22, 23, 24, 25), as indicated by the negative regression coefficients (adj.p < 0.05). In addition, while both groups tended to have more caries at posterior sites low flow subjects tended to have significantly more  at several maxillary (3, 5, 14) and mandibular molars and pre-molars (18, 19, 21, 28, 30, 31) compared to the control, as indicated by the positive regression coefficients. 
+**Look at DMFS**
 
 ```{r, figure 3a}
-#For teeth 7, 8, 22, and 27 the error 0 or 1 probability occurred; 
+#we want to scale the data so that predictors can be compared
 tooth.model = tooth.model[!(tooth.model %in% c(1, 16, 17, 32))]
-caries.df <- dplyr::select(caries_map, c("DMFS.bytooth", "cohort", "age", "uwsfr", "tooth")) %>%
+caries.df <- dplyr::select(caries_map, 
+                           c("DMFS.bytooth", "cohort", "age", "uwsfr", "tooth")) %>%
   filter(., !(tooth %in% c(1, 16, 17, 32) ))
 
-keep = dplyr::select(caries.df, c("DMFS.bytooth",
-                                            "tooth"))
+#subset on the variables of interest
+keep = dplyr::select(caries.df, c("DMFS.bytooth", "tooth"))
 caries.df$cohort = plyr:::revalue(caries.df$cohort, c("Control"=0, "Low Flow"=1))
 caries.df$cohort = as.numeric(as.character(caries.df$cohort))
-
-
+#center and scale
 caries.df.scaled = data.frame(scale(caries.df[,2:4], center=TRUE, scale=TRUE))
 caries.df.scaled = data.frame(cbind(keep), caries.df.scaled)
 caries.df.scaled$dmfs_orderNorm   = orderNorm(caries.df.scaled$DMFS.bytooth)$x.t #normal
 
+#run the dmfs model on the normalized d
 dmfs.model = 'dmfs_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
 df = get_spltmap_out(df=caries.df.scaled, 
                         myvector=as.vector(caries.df.scaled$tooth), 
@@ -491,64 +505,43 @@ df$terms_f <- factor(df$term, levels=c("Age", "Cohort", "UWS-FR", "Cohort:UWS-FR
 
 #Plot results for the DMFS Model
 Fig2A = plot_age(df, model="DMFS")
-
-age.sig = subset(df, p.adj < 0.05 & term=="Age") # age impacts all teeth
-age.sig$Significant = ifelse(age.sig$p.value <0.05, "Yes","No")
+  #age.sig = subset(df, p.adj < 0.05 & term=="Age") # age impacts all teeth
+  #age.sig$Significant = ifelse(age.sig$p.value <0.05, "Yes","No")
 
 Fig2B = plot_cohort(df, model="DMFS")
-dfms.sig = subset(df, p.adj < 0.05 & term=="cohort") # age cohort primarily affects the upper jaw! incisors/canines in lower jaw
-#on average difference between anterior to posterior
-ant = subset(df, tooth.class %in% c("Canine", "Central.Incisor", "Lateral.Incisor" ) & term=="cohort" )
-post = subset(df, tooth.class %in% c("Molar",       "Pre.Molar" ) & term=="cohort" )
-mean(ant$estimate)/mean(post$estimate)
+  #dfms.sig = subset(df, p.adj < 0.05 & term=="cohort") 
 
-neg = subset(dfms.sig, estimate < 0)
-sigPos = subset(dfms.sig, p.adj < 0.05 & estimate >-0.04 )
+    #on average difference between anterior to posterior
+    #ant = subset(df, tooth.class %in% 
+    #               c("Canine", "Central.Incisor", "Lateral.Incisor" ) & term=="cohort" )
+    #post = subset(df, tooth.class %in% c("Molar",  "Pre.Molar" ) & term=="cohort" )
+    #mean(ant$estimate)/mean(post$estimate)
+    
+    #signeg = subset(dfms.sig, estimate < 0)
+    #sigPos = subset(dfms.sig, p.adj < 0.05 & estimate >-0.04 )
 
 Fig2C = plot_flow(df, model="DMFS")
-uws.sig = subset(df,p.adj < 0.05 & term=="UWS-FR") # 11 teeth
-
+#uws.sig = subset(df,p.adj < 0.05 & term=="UWS-FR")
 
 Fig2D = plot_interaction(df, model="DMFS")
-int.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR") # 11 teeth
+#int.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR") # 11 teeth
+```
 
+### Supplementary Figure 1
+Supplementary Figure 1: Scatterplot of DMFS as a function of UWS-FR. Linear models were fit for each cohort. As flow rate decreases the number of DMFS increases at a greater rate in the low flow cohort (blue) compared to controls (orange). 
 
-#
-p = subset(caries_map, cohort %in% c("Control", "Low Flow")) %>%
-    ggplot(., aes(uwsfr , DMFS.bysubject , color=as.factor(cohort)), group=as.factor(cohort)) + 
+```{r}
+SuppFig1 = subset(caries_map, cohort %in% c("Control", "Low Flow")) %>%
+    ggplot(., aes(uwsfr , DMFS.bysubject , color=as.factor(cohort)),
+           group=as.factor(cohort)) + 
       geom_point() + geom_smooth(method = lm) 
 
-
-
-p1 = subset(caries_map, cohort %in% c("Control", "Low Flow")) %>%
-  subset(., tooth %in% c(6, 8, 11,  22, 23, 24, 25)) %>%
-  ggplot(., aes(as.factor(tooth), DMFS_orderNorm, color=cohort, ncol=2)) + geom_boxplot()+ 
-  facet_wrap(~tooth, scales="free") +
-  stat_compare_means() + ggtitle("Negative Coef") + geom_point()
-
-
-p2 = subset(caries_map, cohort %in% c("Control", "Low Flow")) %>%
-  subset(., tooth %in% c(3, 5, 14, 18, 19, 21, 28, 30, 31)) %>%
-  ggplot(., aes(as.factor(tooth), DMFS_orderNorm, color=cohort)) + geom_boxplot()+ 
-  facet_wrap(~tooth, scales="free") +
-  stat_compare_means()+ ggtitle("Positive Coef")+ geom_point()
-grid.arrange(p1, p2, ncol=2)
-
-
-fm = subset(caries_map, tooth %in% c(3, 5, 14, 18, 19, 21, 28, 30, 31)) 
-fm = subset(fm, cohort %in% c("Low Flow", "Control"))
-fm1 = doBy::summaryBy(DMFS.bytooth~tooth+cohort, FUN=mean, data=fm)
-p = ggplot(fm1, aes(cohort, DMFS.bytooth.mean)) + facet_wrap(~tooth) + geom_point()
-
-fm = subset(caries_map, tooth %in% c(6, 8, 11,  22, 23, 24, 25)) 
-fm = subset(fm, cohort %in% c("Low Flow", "Control"))
-fm1 = doBy::summaryBy(DMFS.bytooth~tooth+cohort, FUN=mean, data=fm)
-p2 = ggplot(fm1, aes(cohort, DMFS.bytooth.mean)) + facet_wrap(~tooth) + geom_point()
-
+ggsave(SuppFig1, file="~/Dropbox/oral-clinical-data-analysis-ms/SupplementalFigure1.png", width=10, height=12, units="in", dpi=300)
 ```
 
 
-Set up CAL model
+
+Set up periodontal data frame
 ```{r, figure 3b}
 plot_cohort <- function(df, model){
   p <- ggplot(filter(df, term == "Cohort"), aes(x = tooth, y = estimate, color = tooth.class, shape=Significance)) +
@@ -558,7 +551,7 @@ plot_cohort <- function(df, model){
     geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
     coord_flip() +
     ggtitle(paste0(model, " ", "~ Cohort")) +
-    labs(x = "Universal Tooth Number", y = "Control <--> Sjogrens", color = "Tooth Class")
+    labs(x = "Universal Tooth Number", y = "Estimate", color = "Tooth Class")
 }
 
 perio.df <- dplyr::select(perio_map, c("cal", "pd","gm.cej","bop",
@@ -566,7 +559,6 @@ perio.df <- dplyr::select(perio_map, c("cal", "pd","gm.cej","bop",
             filter(., tooth != 1 & tooth != 16 & tooth != 17 & tooth != 32)
 
 #transformations
-
 keep = dplyr::select(perio.df, c("cal",
                               "pd",
                               "gm.cej",
@@ -575,15 +567,19 @@ keep = dplyr::select(perio.df, c("cal",
                               "tooth"))
 perio.df$cohort = plyr:::revalue(perio.df$cohort, c("Control"=0, "Low Flow"=1))
 perio.df$cohort = as.numeric(as.character(perio.df$cohort))
-perio.df.scaled = data.frame(scale(perio.df[,5:7], center=TRUE, scale=TRUE))
+perio.df.scaled = data.frame(scale(perio.df[,5:7], center=TRUE, scale=TRUE)) #scale the predictors
 perio.df.scaled = data.frame(cbind(keep), perio.df.scaled)
+```
 
-perio.df.scaled$cal_orderNorm   = orderNorm(perio.df.scaled$cal)$x.t #normal
+**CAL model**
+
+```{r}
+perio.df.scaled$cal_orderNorm   = orderNorm(perio.df.scaled$cal)$x.t
 
 
 cal.model = 'cal_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
 mycoefficients = get_spltmap_out(df=perio.df.scaled, 
-                        myvector=as.vector(perio.df$tooth), 
+                        myvector=as.vector(perio.df.scaled$tooth), 
                         model=cal.model)
                         df = define_tooth_class(mycoefficients)
 
@@ -596,79 +592,75 @@ df$terms_f <- factor(df$term, levels=c("Age", "cohort", "UWS-FR", "Cohort:UWS-FR
 
 #Plot results for the CAL Model
 Fig2E = plot_age(df, model="CAL")
-age.sig = subset(df, p.adj < 0.05 & term=="Age") # age impacts all teeth
+  #age.sig = subset(df, p.adj < 0.05 & term=="Age") 
 
 Fig2F = plot_cohort(df, model="CAL")
-cal.sig = subset(df, p.adj < 0.05 & term=="Cohort") # age cohort primarily affects the upper jaw! incisors/canines in lower jaw
-antMax = subset(cal.sig, tooth %in% c(6, 7, 8, 9, 10, 11))
-min(antMax$estimate)
-max(antMax$estimate)
-mean(antMax$estimate)
-antMan = subset(cal.sig, tooth %in% c(22, 23, 24, 25, 26, 27))
-min(antMan$estimate)
-max(antMan$estimate)
-mean(antMan$estimate)
-
-postMax = subset(cal.sig, tooth %in% c(3, 4, 5, 12, 13, 14))
-min(postMax$estimate)
-max(postMax$estimate)
-mean(postMax$estimate)
-
-postMan = subset(cal.sig, tooth %in% c(20, 21, 30))
-min(postMan$estimate)
-max(postMan$estimate)
-mean(postMan$estimate)
+#cal.sig = subset(df, p.adj < 0.05 & term=="Cohort") 
+    #antMax = subset(cal.sig, tooth %in% c(6, 7, 8, 9, 10, 11))
+    #min(antMax$estimate)
+    #max(antMax$estimate)
+    #mean(antMax$estimate)
+    #antMan = subset(cal.sig, tooth %in% c(22, 23, 24, 25, 26, 27))
+    #min(antMan$estimate)
+    #max(antMan$estimate)
+    #mean(antMan$estimate)
+    
+    #postMax = subset(cal.sig, tooth %in% c(3, 4, 5, 12, 13, 14))
+    #min(postMax$estimate)
+    #max(postMax$estimate)
+    #mean(postMax$estimate)
+    
+    #postMan = subset(cal.sig, tooth %in% c(20, 21, 30))
+    #min(postMan$estimate)
+    #max(postMan$estimate)
+    #mean(postMan$estimate)
 
 Fig2G = plot_flow(df, model="CAL")
-uws.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") # 11 teeth
+#uws.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") 
 
 
 Fig2H = plot_interaction(df, model="CAL")
-int.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR") # 11 teeth
-
+#int.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR") 
 ```
 
-Let's do probing depth
+**probing depth**
 ```{r, figure 3c}
-
 perio.df.scaled$pd_orderNorm   = orderNorm(perio.df.scaled$pd)$x.t
 
 pd.model = 'pd_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
 mycoefficients = get_spltmap_out(df=perio.df.scaled, 
-                        myvector=as.vector(perio.df$tooth), 
+                        myvector=as.vector(perio.df.scaled$tooth), 
                         model=pd.model)
 df = define_tooth_class(mycoefficients)
+
 #adjust the p-values for multiple testing
 df$p.adj = p.adjust(df$p.value, method="BH", n=length(df$p.value))
 df$Significance = ifelse(df$p.adj < 0.05, "Yes", "No")
-                        
 
 #add factor to facet by
 df$terms_f <- factor(df$term, levels=c("Age", "Cohort", "UWS-FR", "Cohort:UWS-FR"))
 
 #Plot results for the PD Model
 Fig2I = plot_age(df, model="PD")
-pd.sig = subset(df, p.adj < 0.05 & term=="Age") # age cohort primarily affects the upper jaw! incisors/canines in 
+  #pd.sig = subset(df, p.adj < 0.05 & term=="Age") 
 
 Fig2J = plot_cohort(df, model="PD")
-pd.sig = subset(df, p.adj < 0.05 & term=="Cohort") # age cohort primarily affects the upper jaw! incisors/canines in 
+  #pd.sig = subset(df, p.adj < 0.05 & term=="Cohort") 
 
 Fig2K = plot_flow(df, model="PD")
-pd.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") # 11 teeth
-
+  #pd.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") 
 
 Fig2L = plot_interaction(df, model="PD")
-
 ```
 
-Let's do gm-cej
+**gm-cej**
 ```{r, figure 3d}
 perio.df.scaled$gm.cej_orderNorm   = orderNorm(perio.df.scaled$gm.cej)$x.t
 
-pd.model = 'gm.cej_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
+gm.model = 'gm.cej_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
 mycoefficients = get_spltmap_out(df=perio.df.scaled, 
-                        myvector=as.vector(perio.df$tooth), 
-                        model=pd.model)
+                        myvector=as.vector(perio.df.scaled$tooth), 
+                        model=gm.model)
                         df = define_tooth_class(mycoefficients)
 #adjust the p-values for multiple testing
 df$p.adj = p.adjust(df$p.value, method="BH", n=length(df$p.value))
@@ -679,52 +671,46 @@ df$terms_f <- factor(df$term, levels=c("Age", "Cohort", "UWS-FR", "Cohort:UWS-FR
 
 #Plot results for the GM-CEJ Model
 Fig2M = plot_age(df, model="GM-CEJ")
+
 Fig2N = plot_cohort(df, model="GM-CEJ")
-gm.sig = subset(df, p.adj < 0.05 & term=="Cohort") # age cohort primarily affects the upper jaw! incisors/canines in 
+  #gm.sig = subset(df, p.adj < 0.05 & term=="Cohort") 
+    #antMax = subset(gm.sig, tooth %in% c(7, 10, 12))
+    #min(antMax$estimate)
+    #max(antMax$estimate)
+    #mean(antMax$estimate)
+    #antMan = subset(gm.sig, tooth %in% c(22, 23, 24, 25, 26, 27))
+    #min(antMan$estimate)
+    #max(antMan$estimate)
+    #mean(antMan$estimate)
+    
+    #postMax = subset(gm.sig, tooth %in% c(3, 4, 5, 12, 13, 14))
+    #min(postMax$estimate)
+    #max(postMax$estimate)
+    #mean(postMax$estimate)
+    
+    #postMan = subset(gm.sig, tooth %in% c(20, 21, 30))
+    #min(postMan$estimate)
+    #max(postMan$estimate)
+    #mean(postMan$estimate)
 
-
-
-
-antMax = subset(gm.sig, tooth %in% c(7, 10, 12))
-min(antMax$estimate)
-max(antMax$estimate)
-mean(antMax$estimate)
-antMan = subset(gm.sig, tooth %in% c(22, 23, 24, 25, 26, 27))
-min(antMan$estimate)
-max(antMan$estimate)
-mean(antMan$estimate)
-
-postMax = subset(gm.sig, tooth %in% c(3, 4, 5, 12, 13, 14))
-min(postMax$estimate)
-max(postMax$estimate)
-mean(postMax$estimate)
-
-postMan = subset(gm.sig, tooth %in% c(20, 21, 30))
-min(postMan$estimate)
-max(postMan$estimate)
-mean(postMan$estimate)
 Fig2O = plot_flow(df, model="GM-CEJ")
-gm.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") # 11 teeth
+  #gm.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") 
 
 Fig2P = plot_interaction(df, model="GM-CEJ")
-int.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR") # 11 teeth
-
+  #int.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR")
 ```
 
 
-let's do bop
+**bop**
 
 ```{r, figure 3e}
-perio.df$bop_orderNorm   =orderNorm(perio.df$bop)$x.t
+perio.df.scaled$bop_orderNorm   =orderNorm(perio.df.scaled$bop)$x.t
 bop.model = 'bop_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
 
 mycoefficients = get_spltmap_out(df=perio.df.scaled, 
-                        myvector=as.vector(perio.df$tooth), 
-                        model=pd.model)
+                        myvector=as.vector(perio.df.scaled$tooth), 
+                        model=bop.model)
                         df = define_tooth_class(mycoefficients)
-
-                        
-#combine coefs and confs and filter out intercept
 
 #adjust the p-values for multiple testing
 df$p.adj = p.adjust(df$p.value, method="BH", n=length(df$p.value))
@@ -735,24 +721,24 @@ df$terms_f <- factor(df$term, levels=c("Age", "Cohort", "UWS-FR", "Cohort:UWS-FR
 
 #Plot results for the BOP Model
 Fig2Q = plot_age(df, model="BOP")
+  #age=subset(df, term=="Age" & Significance=="Yes")
+
 Fig2R = plot_cohort(df, model="BOP")
-bop.sig = subset(df, p.adj < 0.05 & term=="Cohort") # age cohort primarily affects the upper jaw! incisors/canines in 
+  #bop.sig = subset(df, p.adj <= 0.05 & term=="Cohort")
 
 Fig2S = plot_flow(df, model="BOP")
-bop.sig = subset(df, p.adj < 0.05 & term=="UWS-FR") # 11 teeth
+  #bop.sig = subset(df, p.adj < 0.05 & term=="UWS-FR")
 
 Fig2T = plot_interaction(df, model="BOP")
-
-
-p = ggplot(perio.df, aes(bop_orderNorm, gm.cej)) + geom_point() + facet_wrap(~tooth)
+  #bop.sig = subset(df, p.adj < 0.05 & term=="Cohort:UWS-FR") 
 ```
 
 
-Figure 2: Explicit spatial modeling reveals independent effects of age and patient cohort on the spatial pattern of dental disease. Coefficients with uncertainty intervals are plotted for a series of per-tooth linear models where DMFS (a), CAL (b), and GM-CEJ (c) were regressed against age, patient cohort, UWS-FR and the interaction between UWS-FR and  cohort.
+**Figure 2:** Explicit spatial modeling reveals independent effects of age and patient cohort on the spatial pattern of dental disease. Coefficients with uncertainty intervals are plotted for a series of per-tooth linear models where DMFS (a), CAL (b), and GM-CEJ (c) were regressed against age, patient cohort, UWS-FR and the interaction between UWS-FR and  cohort.
 
 ```{r, figure 3, fig.height=15, fig.width=15}
 #~~~~~~~~~~~~~~~~~~~~
-fig2legend <- cowplot::get_legend(Fig2T)
+fig2legend <- cowplot::get_legend(Fig2A)
 Fig2 <- cowplot::plot_grid((Fig2A + theme(legend.position = "none")), #DMFS~Age
                             (Fig2E + theme(legend.position = "none")), #CAL-age                        
                             (Fig2M + theme(legend.position = "none")), #GM-CEJ
@@ -779,7 +765,7 @@ Fig2 <- cowplot::plot_grid((Fig2A + theme(legend.position = "none")), #DMFS~Age
                                                "m", "n", "o", "p",
                                                "q", "r", "s", "t"), hjust = -2.75, vjust = 1.5)
 Figure2 <- cowplot::plot_grid(Fig2, fig2legend, nrow = 1, rel_widths = c(1,.3))
-ggsave(Figure2, file="~/Dropbox/oral-clinical-data-analysis-ms/Figure2.png",  width = 15, height = 10, units ="in",dpi = 300, device = "png")
+ggsave(Figure2, file="~/Dropbox/oral-clinical-data-analysis-ms/Figure2.png",  width = 17, height = 10, units ="in",dpi = 300, device = "png")
 Figure2
 ```
 
@@ -826,50 +812,100 @@ sample_data(illumina)$Habitat_Class = ifelse(sample_data(illumina)$Habitat_Class
 ord = ordinate(illumina, method="PCoA", distance="bray")
 sample_data(illumina)$Cohort = ifelse(sample_data(illumina)$Aim=="SA1", "Control", "Low Flow")
 
-p1 = plot_ordination(illumina, ord, type="samples", color="uwsfr", shape="Cohort") +
+Figure3a = plot_ordination(illumina, ord, type="samples", color="uwsfr", shape="Cohort") +
     scale_color_gradientn(colours = pal) +
     facet_wrap(~Habitat_Class, scales="free") + theme_classic() + add_plot_elements()
 
-p2 = plot_ordination(illumina, ord, type="samples", color="age", shape="Cohort") + 
+Figure3b = plot_ordination(illumina, ord, type="samples", color="age", shape="Cohort") + 
     scale_color_viridis_c() +
     facet_wrap(~Habitat_Class, scales="free")+ theme_classic() + add_plot_elements()
 
 
 sample_data(illumina)$DMFS.bytooth = as.factor(sample_data(illumina)$DMFS.bytooth)
-p3 = plot_ordination(illumina, ord, type="samples", color="DMFS.bytooth", shape="Cohort") + 
+
+Figure3c = plot_ordination(illumina, ord, type="samples", 
+                           color="DMFS.bytooth", shape="Cohort") + 
     scale_color_manual(values=buda.pal) +
-    facet_wrap(~Habitat_Class, scales="free") + theme_classic()   + geom_point()+ add_plot_elements()
+    facet_wrap(~Habitat_Class, scales="free") + 
+    theme_classic()   + geom_point()+ add_plot_elements()
 
 
-Figure3 <- cowplot::plot_grid((p1), 
-                            (p2),
-                            (p3), 
+Figure3 <- cowplot::plot_grid((Figure3a), 
+                            (Figure3b),
+                            (Figure3c), 
                           ncol = 1, labels = c("a", "b", "c"), hjust = -2.75, vjust = 1.5)
 Figure3
 ggsave(Figure3, file="~/Dropbox/oral-clinical-data-analysis-ms/Figure3.png",  width = 8, height = 10, units ="in",dpi = 300, device = "png")
 ```
 
-how does this related to spatial patterning
-```{r}
-ordDf = p2$data %>%
+### Supplementary Figure 2: different distance metrics
+Supplementary Figure 2. Patterns observed in Figure 3 can be seen using a variety of different ecological distance metrics. 
+```{r, fig.height=16, fig.width=12}
+library(vegan)
+###do relative ab?undance transformation and see if  the patterns are the same
+illuminaRA  = transform_sample_counts(illumina, function(x) x / sum(x) )
+#replace the otu table with hellinger transformed data
+otus = data.frame(otu_table(illuminaRA))
+outs.h = decostand(otus, "hellinger")
+otu_table(illuminaRA) = otu_table(outs.h, taxa_are_rows=FALSE)
+
+#make a list of nmds objects
+dist_methods_deco =  c("binomial", "bray", "canberra", "euclidean", "gower", "jaccard", "kulczynski", "manhattan")
+
+nmds_ideco.list <- vector("list", length(dist_methods_deco))
+plot_ideco.list <- vector("list", length(dist_methods_deco))     
+
+for(i in 1:length(dist_methods_deco)){
+        iDist <- vegan::vegdist(outs.h, method=dist_methods_deco[i])
+        iMDS <- ordinate(illuminaRA, method="PCoA", distance=iDist, correction="lingoes")
+        p <- plot_ordination(illuminaRA, iMDS, color="Tooth_Class") + 
+          facet_wrap(Jaw_Quadrant~Tooth_Aspect)
+        ps <- p$data
+        ps$Distance <- dist_methods_deco[[i]]
+        plot_ideco.list[[i]] <- ps
+        nmds_ideco.list[[i]] <- iMDS
+}
+plot_ideco <- do.call("rbind", plot_ideco.list) 
+FigureS2a=ggplot(plot_ideco, aes(Axis.1, Axis.2, color=uwsfr)) + 
+    facet_wrap(Distance~Habitat_Class, scales="free", ncol=2) + geom_point() + theme_bw()+ 
+    scale_color_gradientn(colours = pal) + ggtitle("UWSFR")
+
+FigureS2b=ggplot(plot_ideco, aes(Axis.1, Axis.2, color=age)) + 
+    facet_wrap(Distance~Habitat_Class, scales="free", ncol=2) + geom_point() + theme_bw()+ 
+    ggtitle("Age") + scale_color_viridis_c()
+
+FigureS2c=ggplot(plot_ideco, aes(Axis.1, Axis.2, color=DMFS.bytooth)) + 
+    facet_wrap(Distance~Habitat_Class, scales="free", ncol=2) + geom_point() + theme_bw()+ 
+    ggtitle("DMFS")+scale_color_manual(values=buda.pal)
+
+
+
+ggsave(grid.arrange(FigureS2a, FigureS2b, FigureS2c, ncol=3), file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS2.png",  width = 12, height = 14, units ="in",dpi = 300)
+```
+
+### Supplementary Figure 3: how does this related to spatial patterning
+Supplementary Figure 3: Axis 1 scores plotted as a function of tooth class. Supragingival communities differ significantly in the control cohort, compared to the low flow subjects. Site-to-site variability is not observed for subgingival sites in either cohort.
+```{r, fig.width=5, fig.height=5}
+ordDf = Figure3b$data %>%
   subset(., Axis.2 > 0) %>%
   subset(., Aim=="SA1")
 
 
-modOut = p2$data %>%
+FigureS3 = Figure3b$data %>%
   ggplot(., aes(Tooth_Class, Axis.1)) + facet_wrap(Cohort~Habitat_Class, scales="free_x") +  geom_boxplot()+
   stat_compare_means() +geom_point() 
 
-modOut
-ggsave(modOut, file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS3.png")
+FigureS3
+ggsave(FigureS3, file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS3.png")
 ```
 
 
 
 
 
-### Supplementary Figure 1: Constrained correspondence analysis
-Reference: http://userweb.eng.gla.ac.uk/umer.ijaz/bioinformatics/ggplot2/CCA.R
+### Supplementary Figure 4: Constrained correspondence analysis
+Supplementary Figure 4: Constrained correspondence analysis of microbial data using clinical variates as predictors.  canonical correlation show age, pd, and dmfs are correlated
+
 ```{r}
 library(ggvegan)
 buda.pal <-wes_palette("Cavalcanti1", 10, "continuous")
@@ -945,9 +981,7 @@ Fig3A<-p+geom_text(data=dfTax,aes(x,y, label=ASV_Number))
 
 
 
-```
 
-```{r}
 p = ggplot()
 p1<-p+geom_point(data=df_sites,aes(x=CCA1,y=CCA2,shape=Cohort, color=DMFS.bytooth), size=2) + 
   theme_classic()
@@ -998,14 +1032,6 @@ Fig3G<-p1+geom_segment(data=df_arrows, aes(x = 0, y = 0, xend = x, yend = y),
                  arrow = arrow(length = unit(0.2, "cm"))) +
       geom_text(data=as.data.frame(df_arrows*1.1),aes(x, y, label = rownames(df_arrows))) 
 
-
-grid.arrange(Fig3B, 
-             Fig3E,
-             Fig3C, 
-             Fig3A, 
-             Fig3F, 
-             Fig3G,ncol=2)
-
 ggsave(
 grid.arrange(Fig3B, 
              Fig3E,
@@ -1013,69 +1039,26 @@ grid.arrange(Fig3B,
              Fig3A,  ncol=2), file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS4.png", width = 14, height = 10)
 ```
 
-```{r}
-library(seqRFLP)
-x = data.frame(select(dfTax, c("ASV_Number", "ASV")))
-foo=dataframe2fas(x, file = "~/Dropbox/oral-clinical-data-analysis/top30.fasta")
-```
 
+### Figure 4: Microbial migration using Sloan
+Figure 4: Estimated migration rates by habitat within each individual. Rates were inferred using the Sloan Community Neutral Model. Each hollow point represents the estimated migration rate for each of our defined metacommunities for each individual, while the solid point represents their average with standard error bars. Colors correspond to the patient cohort. The code for this figure is in the file dispersal.html/dispersal.rmd.
 
-### Supplementary Figure 2: different distance metrics
-
-```{r, fig.height=16, fig.width=12}
-library(vegan)
-###do relative ab?undance transformation and see if  the patterns are the same
-illuminaRA  = transform_sample_counts(illumina, function(x) x / sum(x) )
-#replace the otu table with hellinger transformed data
-otus = data.frame(otu_table(illuminaRA))
-outs.h = decostand(otus, "hellinger")
-otu_table(illuminaRA) = otu_table(outs.h, taxa_are_rows=FALSE)
-
-#make a list of nmds objects
-dist_methods_deco =  c("binomial", "bray", "canberra", "euclidean", "gower", "jaccard", "kulczynski", "manhattan")
-
-nmds_ideco.list <- vector("list", length(dist_methods_deco))
-plot_ideco.list <- vector("list", length(dist_methods_deco))     
-
-for(i in 1:length(dist_methods_deco)){
-        iDist <- vegan::vegdist(outs.h, method=dist_methods_deco[i])
-        iMDS <- ordinate(illuminaRA, method="PCoA", distance=iDist, correction="lingoes")
-        p <- plot_ordination(illuminaRA, iMDS, color="Tooth_Class") + facet_wrap(Jaw_Quadrant~Tooth_Aspect)
-        ps <- p$data
-        ps$Distance <- dist_methods_deco[[i]]
-        plot_ideco.list[[i]] <- ps
-        nmds_ideco.list[[i]] <- iMDS
-}
-plot_ideco <- do.call("rbind", plot_ideco.list) 
-p1=ggplot(plot_ideco, aes(Axis.1, Axis.2, color=uwsfr)) + 
-    facet_wrap(Distance~Habitat_Class, scales="free", ncol=2) + geom_point() + theme_bw()+ 
-    scale_color_gradientn(colours = pal) + ggtitle("UWSFR")
-
-p2=ggplot(plot_ideco, aes(Axis.1, Axis.2, color=age)) + 
-    facet_wrap(Distance~Habitat_Class, scales="free", ncol=2) + geom_point() + theme_bw()+ 
-    ggtitle("Age") + scale_color_viridis_c()
-
-p3=ggplot(plot_ideco, aes(Axis.1, Axis.2, color=DMFS.bytooth)) + 
-    facet_wrap(Distance~Habitat_Class, scales="free", ncol=2) + geom_point() + theme_bw()+ 
-    ggtitle("DMFS")+scale_color_manual(values=buda.pal)
-
-
-grid.arrange(p1, p2, p3, ncol=3)
-ggsave(grid.arrange(p1, p2, p3, ncol=3), file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS2.png",  width = 12, height = 14, units ="in",dpi = 300)
-```
-
-
-### Microbial migration - refer to supplementary data 3.
-
-- Figure 4: Microbial migration using Sloan
-- Supplementary Figure 3: microbial migration using GST
+![Figure4](figure4.png)
 
 
 
 
-### Figure 5A: VAS
-This plot shows that dry_speak, dry_qol, dry_swallow are correlated together, dry_tongue, dry_throat, dry_palate are together, and dry_lips is alone. This suggests that these grouped variables vary together.
-These plots also show that PC1 vs PC2 separates the data primarily by cohort. This suggests that these variables may be used to possibly distinguish between cohort.
+### Supplementary Figure 5: Microbial migration - refer to dispersal.html.
+Supplementary Figure 5: Estimated migration rates of tooth habitats (Gst) for each tooth habitat and tooth aspect. Colors correspond to cohort (SA1 = control cohort; SA3 = low flow cohort). Boxplots with outer edges of boxes encapsulate the first and third quartiles. The horizontal line bisecting the center of each box demarcates the median. Each point represents an individual sample/community within each of our defined metacommunities.The code for this section is in the dispersal.rmd/dispersal.html files.
+
+![Supplementary Figure 5](suppfigure5.png){width=50%}
+
+
+
+
+### Figure 5: VAS
+
+Figure 5: Symptomatic complaints of dry mouth predict low salivary flow. a) principal component analysis of subject responses to visual analog scale revealed two groups of questions – questions that segregate subjects who complain of impacts to quality of life (dry_speak, dry_qol, dry_swallow) and questions that indicate feelings of dry mouth (dry_tongue, dry_throat, dry_palate, dry_lips). b) conditional inference tree was used to identify the variables most predictive of separating patients into groups based on low (UWS-FR < 0.1ml/min) and not low (UWS-FR > 0.1 ml/min) subgroups.
 
 ``` {r Figure5, fig.height = 5, fig.width = 8}
 quest.df <- read.csv("~/Dropbox/oral-clinical-data-analysis-data/dry_mouth_questionnaire_20190915.csv")
@@ -1097,11 +1080,16 @@ Figure5A = fviz_pca_biplot(res.pca,
 ggsave(Figure5A, file="~/Dropbox/oral-clinical-data-analysis-ms/Figure5a.png", device="png", height = 4, width = 8)
 ```
 
+```{r}
+outDf = Figure5A$coordinates
+```
 
-Supplementary figure S4: raw data underlying VSQ
+### Supplementary figure S6: raw data underlying VSQ
+
+Boxplots of VAS reveal significant differences in responses between groups. Each question on the Visual Analog Scale querying the symptomatic complaints of dry mouth is plotted as an individual panel. The midline of each boxplot represents the median while the outer edges encompass the first and third quartiles. Points on the graph indicate outliers. Colors correspond to patient cohort (control, low flow). Across all questions respondents in the low flow cohort rated their impairment and subjective complaints of dry mouth as more severe than the patients in the control cohort (Wilcoxon rank sum tests, p < 0.05).
 ```{r}
 # plot the raw data
-vsq = melt(quest.df, id.vars = c("redcap", "aim", "uwsfr", "cohort", "X"))
+vsq = melt(quest.df, id.vars = c("redcap", "aim", "uwsfr", "cohort"))
 vsq$value = as.numeric(as.character(vsq$value))
 vsq = subset(vsq, variable != "cat")
 FigureS4 = ggplot(vsq, aes(cohort, value, fill=cohort)) + 
@@ -1114,7 +1102,7 @@ ggsave(FigureS4, file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS4.png", d
 
 
 
-### Figure 5B: Symptomatic complaints of dry mouth predict low salivary flow. 
+**Figure 5B**: Symptomatic complaints of dry mouth predict low salivary flow. 
 Conditional inference tree was used to identify the variables that most robustly separated patients into groups based on low (UWS-FR < 0.1ml/min) and not low (UWS-FR > 0.1 ml/min) subgroups. This model accurately identified 84.6% (11/13) subjects as having salivary flow rates lower than 0.1 ml/min. Most subjects who indicated that low salivary flow negatively impacted their overall quality of life (VAS >=56) had flow rates of less than 0.1 ml/min. On the other hand, most subjects who rated a negligible impact of low flow on their quality of life as well as an absence of dryness on their lips had flow rates exceeding 0.1 ml/min. 
 
 ```{r, fig.width=5, fig.height=5}
@@ -1144,9 +1132,9 @@ table(predict(fit), quest.df$cat)
 #estimated class probabilities
 tr <- treeresponse(fit, newdata = quest.df)
 tr = do.call(rbind, tr) 
-tr
+
 prob = data.frame(tr, quest.df)
-prob
+#prob
 
 
 model <- train(cat ~ phq_dry_swallow + phq_dry_qol + phq_dry_speak + phq_dry_throat + 
@@ -1161,7 +1149,8 @@ plot(fit)
 dev.off()    
 ```
 
-```{r}
+let's use a training / test set. The topmost predictor is significant, but the others aren't. We have limited power due to small N.
+```{r, fig.width=5, fig.height=5}
 library(caret)
 set.seed(3456)
 trainIndex <- createDataPartition(quest.df$cat, p = .7,
@@ -1184,10 +1173,13 @@ table(foo$cat, foo$pred)
 
 ```
 
+
+
+
 ### Supplementary Figure 5: Random Forest analysis of VAS
 
 Supplementary Figure 5: Random forest analysis also identifies dryness of lips and impacts on quality of life as the most discriminant features. Random forest analysis was used to identify the most discriminant features included in the Visual Analog Scale. The out of box error rate for the random forest model was 8.46%. The most discriminant features were the impact of dry mouth on the overall quality of life (phq_dry_qol), the dryness of the lips (phq_dry_lips) consistent with the classification tree.
-```{r}
+```{r, fig.width=5, fig.height=5}
 library(randomForest)
 library(rfPermute)
 fit <- randomForest(cat ~ phq_dry_swallow + phq_dry_qol + phq_dry_speak + phq_dry_throat + phq_dry_tongue + phq_dry_lips + phq_dry_palate + cohort, data=quest.df, proximity = TRUE)
@@ -1209,85 +1201,3 @@ ggsave(p, file="~/Dropbox/oral-clinical-data-analysis-ms/FigureS5.png", device="
 
 ```
 
-### Validate the lm using a data subset defined by the older control subjects
-
-
-### Look at DMFS - over 40
-
-```{r}
-#For teeth 7, 8, 22, and 27 the error 0 or 1 probability occurred; 
-tooth.model = tooth.model[!(tooth.model %in% c(1, 16, 17, 32))]
-caries.df <- dplyr::select(caries_map, c("DMFS.bytooth", "cohort", "age", "uwsfr", "tooth")) %>%
-  filter(., !(tooth %in% c(1, 16, 17, 32) ))
-caries.df = subset(caries.df, cohort=="Control" & age >=40 | cohort=="Low Flow")
-cohort = caries.df$cohort
-tooth = caries.df$tooth
-caries.df$cohort = NULL
-caries.df.scaled = data.frame(scale(caries.df, center=TRUE, scale=TRUE))
-caries.df.scaled$tooth = tooth
-caries.df.scaled$cohort = cohort
-
-
-#dmfs.model = 'DMFS.bytooth ~  cohort + uwsfr  + age'
-
-dmfs.model = 'DMFS.bytooth ~ cohort + uwsfr + cohort:uwsfr + age'
-df = get_spltmap_out(df=caries.df.scaled, 
-                        myvector=as.vector(caries.df.scaled$tooth), 
-                        model=dmfs.model)
-                        df = define_tooth_class(df)
-                        
-#adjust the p-values for multiple testing
-df$p.adj = p.adjust(df$p.value, method="BH", n=length(df$p.value))
-df$Significance = ifelse(df$p.adj < 0.05, "Yes", "No")
-#combine coefs and confs and filter out intercept
-#add factor to facet by
-df$terms_f <- factor(df$term, levels=c("Age", "Cohort", "UWS-FR", "Cohort:UWS-FR"))
-
-#Plot results for the DMFS Model
-p1 = plot_age(df, model="DMFS")
-p2 = plot_cohort(df, model="DMFS")
-p3 = plot_flow(df, model="DMFS")
-p4 = plot_interaction(df, model="DMFS")
-
-Figure3A <- ggarrange((p1 + theme(legend.position = "none")),
-                       (p2 + theme(legend.position = "none")),
-                       (p3 + theme(legend.position = "none")),
-                       (p4 + theme(legend.position = "none")), ncol = 4)
-
-```
-
-
-Set up CAL model - over 40
-```{r, eval=FALSE}
-perio.df <- dplyr::select(perio_map, c("cal", "pd","gm.cej","bop",
-                                       "cohort", "age", "uwsfr", "tooth")) %>%
-            filter(., tooth != 1 & tooth != 16 & tooth != 17 & tooth != 32)
-perio.df = subset(perio.df, cohort=="Control" & age >=40 | cohort=="Low Flow")
-
-#transformations
-#perio.df$cal   = orderNorm(perio.df$cal)$x.t #normal
-perio.df.scaled = data.frame(scale(perio.df, center=TRUE, scale=TRUE))
-
-
-cal.model = 'cal_orderNorm ~ cohort + uwsfr + cohort:uwsfr + age'
-mycoefficients = get_spltmap_out(df=perio.df, 
-                        myvector=as.vector(perio.df$tooth), 
-                        model=cal.model)
-                        df = define_tooth_class(mycoefficients)
-
-#add factor to facet by
-df$terms_f <- factor(df$term, levels=c("Age", "Cohort", "UWS-FR", "Cohort:UWS-FR"))
-
-#Plot results for the CAL Model
-p1 = plot_age(df, model="CAL")
-p2 = plot_cohort(df, model="CAL")
-p3 = plot_flow(df, model="CAL")
-p4 = plot_interaction(df, model="CAL")
-
-Figure3B <- ggarrange((p1 + theme(legend.position = "none")),
-                       (p2 + theme(legend.position = "none")),
-                       (p3 + theme(legend.position = "none")),
-                       (p4 + theme(legend.position = "none")), ncol = 4)
-
-Figure3B
-```
