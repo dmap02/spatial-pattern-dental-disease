@@ -1,0 +1,619 @@
+---
+title: "Periodontology 2000 - Adam's dispersal analysis script (Figure 3)" 
+author: "Adam Burns"
+date: "October 18, 2018"
+output: html_document
+
+
+---
+
+```{r, echo=TRUE, error=FALSE, warning=FALSE, results=TRUE, message=FALSE}
+###Load required libraries
+library(knitr)
+library(DESeq2)
+library(phyloseq)
+library(ggplot2)
+library(gridExtra)
+library(reshape2)
+library(vegan)
+library(untb)
+library(minpack.lm)
+library(Hmisc)
+
+
+###Import data
+ddat.phy <- readRDS("~/Dropbox/oral-clinical-data-analysis-data/periodontology2000_hypo.RDS")
+ddat.otu <- as.data.frame(otu_table(ddat.phy))
+ddat.map <- as.data.frame(sample_data(ddat.phy))
+ddat.tax <- as.data.frame(tax_table(ddat.phy))
+
+#Calculate sampling depth
+num.seqs <- rowSums(ddat.otu)
+num.seqs <- as.data.frame(sort(num.seqs))
+colnames(num.seqs) <- "num.seqs"
+num.map <- merge(ddat.map, num.seqs, by.x=0, by.y=0, all=TRUE)
+rownames(num.map) <- num.map$Row.names
+num.map <- num.map[,-which(names(num.map) %in% c("Row.names"))]
+
+###Sloan neutral community model
+#Define neutral model fiting function
+sncm.fit <- function(spp){
+	require(minpack.lm)
+	options(warn=-1)
+	N <- mean(apply(spp, 1, sum))
+	p <- apply(spp, 2, mean)/N
+	spp.bi <- 1*(spp>0)
+	freq <- apply(spp.bi, 2, mean)
+	d <- 1/N
+	m.fit <- nlsLM(freq ~ pbeta(d, N*m*p, N*m*(1-p), lower.tail=FALSE), start=list(m=0.1))
+	m.ci <- confint(m.fit, 'm', level=0.95)
+	#Calculate goodness-of-fit (R-squared and Root Mean Squared Error)
+	freq.pred <- pbeta(d, N*coef(m.fit)*p, N*coef(m.fit)*(1-p), lower.tail=FALSE)
+	Rsqr <- 1 - (sum((freq - freq.pred)^2))/(sum((freq - mean(freq))^2))
+	RMSE <- sqrt(sum((freq-freq.pred)^2)/(length(freq)-1))
+	#Results
+	fitstats <- data.frame(m=numeric(), m.ci=numeric(), Rsqr=numeric(), RMSE=numeric())
+	fitstats[1,] <- c(coef(m.fit), coef(m.fit)-m.ci[1], Rsqr, RMSE)
+	return(fitstats)
+}
+#Define function for predicted values
+sncm.pred <- function(spp){
+	require(minpack.lm)
+	require(Hmisc)
+	options(warn=-1)
+	N <- mean(apply(spp, 1, sum))
+	p <- apply(spp, 2, mean)/N
+	spp.bi <- 1*(spp>0)
+	freq <- apply(spp.bi, 2, mean)
+	d <- 1/N
+	m.fit <- nlsLM(freq ~ pbeta(d, N*m*p, N*m*(1-p), lower.tail=FALSE), start=list(m=0.1))
+	#Calculate predicted values
+	freq.pred <- pbeta(d, N*coef(m.fit)*p, N*coef(m.fit)*(1-p), lower.tail=FALSE)
+	#Calculate residuals
+	pred.res <- freq - freq.pred
+	#Results
+	A <- cbind(p, freq, freq.pred, pred.res)
+	A <- as.data.frame(A)
+	colnames(A) <- c('p', 'freq', 'freq.pred', 'pred.res')
+	return(A)
+}
+
+###Rarefaction analysis
+#Select maximum sampling depth and remove samples under that depth
+min.seq <- 50000
+ddatr.otu <- ddat.otu[rowSums(ddat.otu) >= min.seq, ]
+ddatr.otu <- rrarefy(ddatr.otu, min.seq)
+ddatr.otu <- ddatr.otu[,(colSums(ddatr.otu) != 0)]
+ddatr.map <- ddat.map[(rownames(ddat.map) %in% rownames(ddatr.otu)),]
+#Define rarefaction levels to analyze
+rare.lvls <- seq.int(from=1000, to=50000, by=1000)
+#Fit model at different rarefaction depths
+ncm.stats <- data.frame(sncm_m=numeric(), sncm_m.ci=numeric(), sncm_Rsqr=numeric(), sncm_RMSE=numeric(), Rarefaction=numeric())
+for(i in 1:length(rare.lvls)){
+	#Rarefy
+	otu.i <- rrarefy(ddatr.otu, rare.lvls[i])
+	otu.i <- otu.i[,(colSums(otu.i) != 0)]
+	#Fit models
+	A.i <- sncm.fit(otu.i)
+	fit.stats.i <- c(A.i$m, A.i$m.ci, A.i$Rsqr, A.i$RMSE, rare.lvls[i])
+	names(fit.stats.i) <- c('sncm_m', 'sncm_m.ci', 'sncm_Rsqr', 'sncm_RMSE', 'Rarefaction')
+	ncm.stats[i,] <- fit.stats.i
+}
+
+#Rarefy to 10,000 sequences per sample
+min.seq <- 10000
+otu.r <- ddat.otu[rowSums(ddat.otu) >= min.seq, ]
+otu.r <- rrarefy(otu.r, min.seq)
+otu.r <- otu.r[,(colSums(otu.r) != 0)]
+map.r <- ddat.map[(rownames(ddat.map) %in% rownames(otu.r)),]
+
+#Fit model by habitat (gingival and tooth aspect) within subject
+ncm.stats <- data.frame(Metacommunity=character(), Subject=character(), Aim=character(), Habitat_Class=character(), Tooth_Aspect=character(), sncm_m=numeric(), sncm_m.ci=numeric(), sncm_Rsqr=numeric(), sncm_RMSE=numeric(), No.Samples=numeric(), stringsAsFactors=FALSE)
+for(s in 1:length(unique(map.r$Subject))){
+	s.id <- unique(map.r$Subject)[s]
+	map.s <- subset(map.r, Subject == s.id)
+	aim.s <- unique(map.s$Aim)
+	for(h in 1:length(unique(map.s$Habitat_Class))){
+		habitat <- unique(map.s$Habitat_Class)[h]
+		map.h <- subset(map.s, Habitat_Class == habitat)
+		for(a in 1:length(unique(map.h$Tooth_Aspect))){
+			aspect <- unique(map.h$Tooth_Aspect)[a]
+			map.a <- subset(map.h, Tooth_Aspect == aspect)
+			otu.a <- otu.r[(rownames(otu.r) %in% rownames(map.a)),]
+			otu.a <- otu.a[,(colSums(otu.a) != 0)]
+			fit.a <- sncm.fit(otu.a)
+			meta.no <- (4*s) + (2*h) + (1*a) - 6 #Used the 'solve' function to determine coefficients
+			vec.a <- c(as.character(paste('M',meta.no, sep='')), as.character(s.id), as.character(aim.s), as.character(habitat), as.character(aspect), fit.a$m, fit.a$m.ci, fit.a$Rsqr, fit.a$RMSE, nrow(map.a))
+			names(vec.a) <- c('Metacommunity', 'Subject', 'Aim', 'Habitat_Class', 'Tooth_Aspect', 'sncm_m', 'sncm_m.ci', 'sncm_Rsqr', 'sncm_RMSE', 'No.Samples')
+			ncm.stats[meta.no,] <- vec.a
+		}
+	}
+}
+ncm.stats$Aim <- factor(ncm.stats$Aim, levels=c('SA1', 'SA3'))
+ncm.stats$Habitat_Class <- factor(ncm.stats$Habitat_Class, levels=c('Supra', 'Sub'))
+ncm.stats$Tooth_Aspect <- factor(ncm.stats$Tooth_Aspect, levels=c('Buccal', 'Lingual'))
+
+#Fit model by habitat (gingival and tooth aspect) within subject and get predictions
+ncm.preds <- data.frame(OTU=character(), Metacommunity=character(), Subject=character(), Aim=character(), Habitat_Class=character(), Tooth_Aspect=character(), sncm_m=numeric(), sncm_m.ci=numeric(), sncm_Rsqr=numeric(), sncm_RMSE=numeric(), No.Samples=numeric(), p=numeric(), freq=numeric(), freq.pred=numeric(), pred.res=numeric(), stringsAsFactors=FALSE)
+ncm.preds[1,] <- rep(NA, times=length(ncol(ncm.preds))) 
+for(s in 1:length(unique(map.r$Subject))){
+	s.id <- unique(map.r$Subject)[s]
+	map.s <- subset(map.r, Subject == s.id)
+	aim.s <- unique(map.s$Aim)
+	for(h in 1:length(unique(map.s$Habitat_Class))){
+		habitat <- unique(map.s$Habitat_Class)[h]
+		map.h <- subset(map.s, Habitat_Class == habitat)
+		for(a in 1:length(unique(map.h$Tooth_Aspect))){
+			aspect <- unique(map.h$Tooth_Aspect)[a]
+			map.a <- subset(map.h, Tooth_Aspect == aspect)
+			otu.a <- otu.r[(rownames(otu.r) %in% rownames(map.a)),]
+			otu.a <- otu.a[,(colSums(otu.a) != 0)]
+			fit.a <- sncm.fit(otu.a)
+			pred.a <- sncm.pred(otu.a)
+			meta.no <- (4*s) + (2*h) + (1*a) - 6 #Used the 'solve' function to determine coefficients
+			df.a <- cbind(rownames(pred.a), rep(as.character(paste('M',meta.no, sep='')), times=nrow(pred.a)), rep(as.character(s.id), times=nrow(pred.a)), rep(as.character(aim.s), times=nrow(pred.a)), rep(as.character(habitat), times=nrow(pred.a)), rep(as.character(aspect), times=nrow(pred.a)), rep(fit.a$m, times=nrow(pred.a)), rep(fit.a$m.ci, times=nrow(pred.a)), rep(fit.a$Rsqr, times=nrow(pred.a)), rep(fit.a$RMSE, times=nrow(pred.a)), rep(nrow(map.a), times=nrow(pred.a)), pred.a)
+			colnames(df.a) <- c('OTU', 'Metacommunity', 'Subject', 'Aim', 'Habitat_Class', 'Tooth_Aspect', 'sncm_m', 'sncm_m.ci', 'sncm_Rsqr', 'sncm_RMSE', 'No.Samples', 'p', 'freq', 'freq.pred', 'pred.res')
+			ncm.preds <- rbind(ncm.preds, df.a)
+		}
+	}
+}
+ncm.preds <- ncm.preds[-1,]
+#Combine with taxonomic calls
+ncm.preds <- merge(ncm.preds, ddat.tax, by.x=1, by.y=0, all=FALSE)
+ncm.preds$Aim <- factor(ncm.preds$Aim, levels=c('SA1', 'SA3'))
+ncm.preds$Habitat_Class <- factor(ncm.preds$Habitat_Class, levels=c('Supra', 'Sub'))
+ncm.preds$Tooth_Aspect <- factor(ncm.preds$Tooth_Aspect, levels=c('Buccal', 'Lingual'))
+
+
+#Variance stabilization via DeSeq2 (From McMurdie)
+#Function for geometric mean, set to zero when all coordinates are zero
+geo_mean_protected <- function(x) {
+  if (all(x == 0)) {
+    return (0)
+  }
+  exp(mean(log(x[x != 0])))
+}
+ps_dds <- phyloseq_to_deseq2(ddat.phy, design = ~ Habitat_Class)
+geoMeans <- apply(counts(ps_dds), 1, geo_mean_protected)
+ps_dds <- estimateSizeFactors(ps_dds, geoMeans = geoMeans)
+ps_dds <- estimateDispersions(ps_dds)
+ddat.otu.vs <- t(getVarianceStabilizedData(ps_dds))
+ddat.otu.vs[ddat.otu.vs<0] <- 0 #Replace negative values with 0
+
+
+#Estimate migration rates using Gst method by habitat (gingival and tooth aspect) within subject
+#On variance stabilized data:
+cols <- c(colnames(ddat.map), 'I', 'm', 'No.Samples')
+gst.param <- t(as.data.frame(rep(NA, times=length(cols)), row.names=cols))
+for(s in 1:length(unique(ddat.map$Subject))){
+	s.id <- unique(ddat.map$Subject)[s]
+	map.s <- subset(ddat.map, Subject == s.id)
+	aim.s <- unique(map.s$Aim)
+	for(h in 1:length(unique(map.s$Habitat_Class))){
+		habitat <- unique(map.s$Habitat_Class)[h]
+		map.h <- subset(map.s, Habitat_Class == habitat)
+		for(a in 1:length(unique(map.h$Tooth_Aspect))){
+			aspect <- unique(map.h$Tooth_Aspect)[a]
+			map.a <- subset(map.h, Tooth_Aspect == aspect)
+			otu.a <- ddat.otu.vs[(rownames(ddat.otu.vs) %in% rownames(map.a)),]
+			otu.a <- otu.a[,(colSums(otu.a) != 0)]
+			gst.a <- as.data.frame(optimal.params.gst(D=t(otu.a), exact=FALSE, ci=FALSE))
+			gst.a <- cbind(gst.a, rep(nrow(map.a), times=nrow(map.a)))
+			colnames(gst.a) <- c('I', 'm', 'No.Samples')
+			df.a <- cbind(map.a, gst.a)
+			gst.param <- rbind(gst.param, df.a)
+		}
+	}
+}
+gst.param <- gst.param[-1,]
+gst.param$Aim <- factor(gst.param$Aim, levels=c('SA1', 'SA3'))
+gst.param$Habitat_Class <- factor(gst.param$Habitat_Class, levels=c('Supra', 'Sub'))
+gst.param$Tooth_Aspect <- factor(gst.param$Tooth_Aspect, levels=c('Buccal', 'Lingual'))
+
+#On rarefied data:
+cols <- c(colnames(map.r), 'I', 'm', 'No.Samples')
+gst.param.r <- t(as.data.frame(rep(NA, times=length(cols)), row.names=cols))
+for(s in 1:length(unique(map.r$Subject))){
+	s.id <- unique(map.r$Subject)[s]
+	map.s <- subset(map.r, Subject == s.id)
+	aim.s <- unique(map.s$Aim)
+	for(h in 1:length(unique(map.s$Habitat_Class))){
+		habitat <- unique(map.s$Habitat_Class)[h]
+		map.h <- subset(map.s, Habitat_Class == habitat)
+		for(a in 1:length(unique(map.h$Tooth_Aspect))){
+			aspect <- unique(map.h$Tooth_Aspect)[a]
+			map.a <- subset(map.h, Tooth_Aspect == aspect)
+			otu.a <- otu.r[(rownames(otu.r) %in% rownames(map.a)),]
+			otu.a <- otu.a[,(colSums(otu.a) != 0)]
+			gst.a <- as.data.frame(optimal.params.gst(D=t(otu.a), exact=FALSE, ci=FALSE))
+			gst.a <- cbind(gst.a, rep(nrow(map.a), times=nrow(map.a)))
+			colnames(gst.a) <- c('I', 'm', 'No.Samples')
+			df.a <- cbind(map.a, gst.a)
+			gst.param.r <- rbind(gst.param.r, df.a)
+		}
+	}
+}
+gst.param.r <- gst.param.r[-1,]
+gst.param.r$Aim <- factor(gst.param.r$Aim, levels=c('SA1', 'SA3'))
+gst.param.r$Habitat_Class <- factor(gst.param.r$Habitat_Class, levels=c('Supra', 'Sub'))
+gst.param.r$Tooth_Aspect <- factor(gst.param.r$Tooth_Aspect, levels=c('Buccal', 'Lingual'))
+```
+
+# Part 1: Variation in microbial migration rates by habitat and disease state.
+In order to determine whether microbial migration rates differed by tooth habitat, or by disease state, we fit the model separately to samples within each tooth habitat on an individual by individual basis.
+
+### Figure 3A: Estimated migration rates of tooth habitats (Sloan model)
+The estimated migration rates by habitat type and disease state. Each open point represents the estimated migration rate across samples for each habitat within each individual. Solid points represent the average across individuals for that habitat, while error bars represent the standard error.
+```{r, echo=FALSE, error=FALSE, warning=FALSE}
+##Plot (by individual - gingival and tooth aspect)
+ncm.stats$Aim = factor(as.character(ncm.stats$Aim))
+ncm.stats$Cohort = ifelse(ncm.stats$Aim == "SA1", "Control Cohort", "Low Flow Cohort")
+p = ggplot(ncm.stats, aes(x=Tooth_Aspect, y=as.numeric(sncm_m))) +
+	#geom_boxplot(aes(colour = Aim), outlier.shape=NA) +
+	geom_point(aes(colour = Cohort), position=position_jitterdodge(jitter.width = 0, dodge.width = 0.8), shape=1, size=1, alpha=1) +
+	stat_summary(aes(colour = Cohort), fun.data = mean_se, geom = "errorbar", position=position_dodge(0.8), width=0.1) +
+	stat_summary(aes(colour = Cohort), fun.y = mean, geom = "point", position=position_dodge(0.8)) +
+	facet_wrap(~Habitat_Class, strip.position="top", nrow=1) +
+	scale_colour_manual(values = c('Control Cohort'='#377eb8', 'Low Flow Cohort'='#e41a1c')) +
+	scale_y_log10() +
+	ylab("Estimated migration rate (log(m))") +
+	xlab("Tooth Habitat") +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   strip.background = element_blank(),
+	   strip.text.x = element_text(colour='black'),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black', angle=30, vjust=1, hjust=1),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),,
+	   legend.position='right',
+	   legend.key = element_blank())
+```
+
+
+###Table XX: Analysis of variance for estimated migration rates across habitats and disease (Sloan model)
+```{r, echo=FALSE, error=FALSE, warning=FALSE}
+ncm.stats$Habitat_Class = ifelse(ncm.stats$Habitat_Class == "Sub","Subgingival", "Supragingival")
+aov.fit <- with(ncm.stats, aov(as.numeric(as.character(sncm_m)) ~ Habitat_Class*Tooth_Aspect*Cohort))
+summ.aov <- summary(aov.fit)[[1]]
+kable(as.data.frame(summ.aov), caption="Analysis of variance on estimated migration rates")
+```
+
+
+###Figure 3A (v2): Estimated migration rates of tooth habitats (Gst)
+```{r, echo=FALSE, error=FALSE, warning=FALSE}
+##Plot (by individual - gingival and tooth aspect)
+gst.param$Aim = factor(as.character(gst.param$Aim))
+gst.param$Cohort = ifelse(gst.param$Aim == "SA1", "Control Cohort", "Low Flow Cohort")
+gst.param$Habitat_Class = ifelse(gst.param$Habitat_Class=="Sub", "Subgingival", "Supragingival")
+p = ggplot(gst.param, aes(x=Tooth_Aspect, y=as.numeric(as.character(m)))) +
+	geom_boxplot(aes(colour = Cohort), outlier.shape=NA) +
+	geom_point(aes(colour = Cohort), position=position_jitterdodge(jitter.width = 0.2, dodge.width = 0.8), size=1, alpha=1) +
+	#stat_summary(aes(colour = Cohort), fun.data = mean_se, geom = "errorbar", position=position_dodge(0.8), width=0.1) +
+	#stat_summary(aes(colour = Cohort), fun.y = mean, geom = "point", position=position_dodge(0.8)) +
+	facet_wrap(~Habitat_Class, strip.position="top", nrow=1) +
+	scale_colour_manual(values = c('Control Cohort'='#377eb8', 'Low Flow Cohort'='#e41a1c')) +
+	scale_y_log10() +
+	ylab("Estimated immigration rate (log(m))") +
+	xlab("Tooth Habitat") +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   strip.background = element_blank(),
+	   strip.text.x = element_text(colour='black'),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black', angle=30, vjust=1, hjust=1),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),,
+	   legend.position='right',
+	   legend.key = element_blank())
+```
+
+
+###Table XX: Analysis of variance for estimated migration rates across habitats and disease (Gst)
+```{r, echo=FALSE, error=FALSE, warning=FALSE}
+aov.fit <- with(gst.param, aov(as.numeric(as.character(m)) ~ Habitat_Class*Tooth_Aspect*Cohort))
+summ.aov <- summary(aov.fit)[[1]]
+kable(as.data.frame(summ.aov), caption="Analysis of variance on estimated migration rates")
+```
+
+
+
+#Part 2: The aggregate fit of the neutral model by disease state and habitat
+For visualization purposes, the following plots show the fit of the model averaged across individuals. Note, however, that the analyses in the test and other figures were done by fitting the model to groups of samples within individuals.
+
+###Figure 3B-E: Observed and predicted distribution of microbial taxa
+The fit of the neutral model to observed data averaged across individuals by habitat and disease state. The black points represent individual taxa, while the blue line represents the predicted values.
+```{r, echo=FALSE, error=FALSE, warning=FALSE, results=FALSE, message=FALSE}
+tax.focus <- c('SR1_3', 'SR1_2', 'Treponema_sp.1', 'Porphyromonas_gingivalis', 'Tannerella_sp.1', 'Tannerella_forsythia', 'Rothia_dentocariosa', 'Streptococcus_sanguinis', 'Abiotrophia_defectiva', 'Scardovia_wiggsiae', 'Streptococcus_mutans', 'Treponema_denticola')
+tax.focus <- data.frame(cbind(tax.focus, seq(from = 97, to = 96+length(tax.focus))))
+colnames(tax.focus) <- c('OTU', 'code')
+
+#Healthy Supragingival
+dat <- subset(ncm.preds, Aim=='SA1' & Habitat_Class=='Supra')
+B.1 <- as.data.frame(cbind(with(dat, aggregate(p, list(OTU), mean))[,2], with(dat, aggregate(freq, list(OTU), mean))[,2], with(dat, aggregate(OTU, list(OTU), function(x){as.character(unique(x))}))[,2]))
+colnames(B.1) <- c('p.mean', 'freq.mean', 'OTU')
+B.1$p.mean <- as.numeric(as.character(B.1$p.mean))
+B.1$freq.mean <- as.numeric(as.character(B.1$freq.mean))
+tax = data.frame(ddat.phy@tax_table@.Data)
+tax$OTU = rownames(tax)
+tax$OTU = as.factor(as.character(tax$OTU))
+
+
+
+
+Bf.1 <- merge(B.1, tax)
+Bf.1$cat = ifelse(Bf.1$p.mean < 0.01, "low", "high")
+m.fit <- with(B.1, nlsLM(freq.mean ~ pbeta(1/min.seq, min.seq*m*p.mean, min.seq*m*(1-p.mean), lower.tail=FALSE), start=list(m=0.1)))
+fun.pred.1 <- function(x){pbeta(1/min.seq, min.seq*coef(m.fit)*x, min.seq*coef(m.fit)*(1-x), lower.tail=FALSE)}
+plot.sa1_supra <- ggplot(B.1, aes(x=p.mean, y=freq.mean)) +
+	geom_point() +
+	geom_point(aes(x=p.mean, y=freq.mean), data=Bf.1, colour='white') +
+	geom_point(aes(x=p.mean, y=freq.mean, color=Genus, shape=cat), data=Bf.1) +
+	stat_function(data=B.1, aes(x=p.mean, y=freq.mean), fun=fun.pred.1, colour='#0072B2') +
+	scale_x_log10() +
+	ylab("Occurrence frequency") +
+	xlab("log(Mean Relative Abundance)") +
+	ggtitle("Supragingival communities across control subjects") +
+	coord_cartesian(ylim=c(-0.025,1.025)) +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black'),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),
+	   legend.position='none')
+
+plot.sa1_supra
+```
+
+
+```{r}
+
+#Healthy Subgingival
+dat <- subset(ncm.preds, Aim=='SA1' & Habitat_Class=='Sub')
+B.2 <- as.data.frame(cbind(with(dat, aggregate(p, list(OTU), mean))[,2], with(dat, aggregate(freq, list(OTU), mean))[,2], with(dat, aggregate(OTU, list(OTU), function(x){as.character(unique(x))}))[,2]))
+colnames(B.2) <- c('p.mean', 'freq.mean', 'OTU')
+B.2$p.mean <- as.numeric(as.character(B.2$p.mean))
+B.2$freq.mean <- as.numeric(as.character(B.2$freq.mean))
+Bf.2 <- subset(B.2, OTU %in% tax.focus$OTU)
+Bf.2 <- merge(Bf.2, tax.focus, by.x='OTU', by.y='OTU', all=FALSE)
+m.fit <- with(B.2, nlsLM(freq.mean ~ pbeta(1/min.seq, min.seq*m*p.mean, min.seq*m*(1-p.mean), lower.tail=FALSE), start=list(m=0.1)))
+fun.pred.2 <- function(x){pbeta(1/min.seq, min.seq*coef(m.fit)*x, min.seq*coef(m.fit)*(1-x), lower.tail=FALSE)}
+
+plot.sa1_sub <- ggplot(B.2, aes(x=p.mean, y=freq.mean)) +
+	geom_point() +
+	geom_point(aes(x=p.mean, y=freq.mean), data=Bf.2, colour='white') +
+	geom_point(aes(x=p.mean, y=freq.mean, shape=code), data=Bf.2, colour='red', size=4) +
+	scale_shape_manual(values=as.numeric(as.character(Bf.2$code))) +
+	stat_function(data=B.2, aes(x=p.mean, y=freq.mean), fun=fun.pred.2, colour='#0072B2') +
+	scale_x_log10() +
+	ylab("Occurrence frequency") +
+	xlab("log(Mean Relative Abundance)") +
+	ggtitle("Subgingival communities across control subjects") +
+	coord_cartesian(ylim=c(-0.025,1.025)) +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black'),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),
+	   legend.position='none')
+
+
+#Disease Supragingival
+dat <- subset(ncm.preds, Aim=='SA3' & Habitat_Class=='Supra')
+B.3 <- as.data.frame(cbind(with(dat, aggregate(p, list(OTU), mean))[,2], with(dat, aggregate(freq, list(OTU), mean))[,2], with(dat, aggregate(OTU, list(OTU), function(x){as.character(unique(x))}))[,2]))
+colnames(B.3) <- c('p.mean', 'freq.mean', 'OTU')
+B.3$p.mean <- as.numeric(as.character(B.3$p.mean))
+B.3$freq.mean <- as.numeric(as.character(B.3$freq.mean))
+Bf.3 <- subset(B.3, OTU %in% tax.focus$OTU)
+Bf.3 <- merge(Bf.3, tax.focus, by.x='OTU', by.y='OTU', all=FALSE)
+m.fit <- with(B.3, nlsLM(freq.mean ~ pbeta(1/min.seq, min.seq*m*p.mean, min.seq*m*(1-p.mean), lower.tail=FALSE), start=list(m=0.1)))
+fun.pred.3 <- function(x){pbeta(1/min.seq, min.seq*coef(m.fit)*x, min.seq*coef(m.fit)*(1-x), lower.tail=FALSE)}
+
+plot.sa3_supra <- ggplot(B.3, aes(x=p.mean, y=freq.mean)) +
+	geom_point() +
+	geom_point(aes(x=p.mean, y=freq.mean), data=Bf.3, colour='white') +
+	geom_point(aes(x=p.mean, y=freq.mean, shape=code), data=Bf.3, colour='red', size=4) +
+	scale_shape_manual(values=as.numeric(as.character(Bf.3$code))) +
+	stat_function(data=B.3, aes(x=p.mean, y=freq.mean), fun=fun.pred.3, colour='#0072B2') +
+	scale_x_log10() +
+	ylab("Occurrence frequency") +
+	xlab("log(Mean Relative Abundance)") +
+	ggtitle("Supragingival communities across Low Flow Cohort") +
+	coord_cartesian(ylim=c(-0.025,1.025)) +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black'),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),
+	   legend.position='none')
+
+
+#Disease Subgingival
+dat <- subset(ncm.preds, Aim=='SA3' & Habitat_Class=='Sub')
+B.4 <- as.data.frame(cbind(with(dat, aggregate(p, list(OTU), mean))[,2], with(dat, aggregate(freq, list(OTU), mean))[,2], with(dat, aggregate(OTU, list(OTU), function(x){as.character(unique(x))}))[,2]))
+colnames(B.4) <- c('p.mean', 'freq.mean', 'OTU')
+B.4$p.mean <- as.numeric(as.character(B.4$p.mean))
+B.4$freq.mean <- as.numeric(as.character(B.4$freq.mean))
+Bf.4 <- subset(B.4, OTU %in% tax.focus$OTU)
+Bf.4 <- merge(Bf.4, tax.focus, by.x='OTU', by.y='OTU', all=FALSE)
+m.fit <- with(B.4, nlsLM(freq.mean ~ pbeta(1/min.seq, min.seq*m*p.mean, min.seq*m*(1-p.mean), lower.tail=FALSE), start=list(m=0.1)))
+fun.pred.4 <- function(x){pbeta(1/min.seq, min.seq*coef(m.fit)*x, min.seq*coef(m.fit)*(1-x), lower.tail=FALSE)}
+
+
+plot.sa3_sub <- ggplot(B.4, aes(x=p.mean, y=freq.mean)) +
+	geom_point() +
+	geom_point(aes(x=p.mean, y=freq.mean), data=Bf.4, colour='white') +
+	geom_point(aes(x=p.mean, y=freq.mean, shape=code), data=Bf.4, colour='red', size=4) +
+	scale_shape_manual(values=as.numeric(as.character(Bf.4$code))) +
+	stat_function(data=B.4, aes(x=p.mean, y=freq.mean), fun=fun.pred.4, colour='#0072B2') +
+	scale_x_log10() +
+	ylab("Occurrence frequency") +
+	xlab("log(Mean Relative Abundance)") +
+	ggtitle("Subgingival communities across Low Flow Cohort") +
+	coord_cartesian(ylim=c(-0.025,1.025)) +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   axis.line.x = element_line(color="black"),
+      axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black'),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),
+	   legend.position='none')
+```
+
+```{r, echo=FALSE, error=FALSE, warning=FALSE, fig.width=24, fig.height=16}
+#Actual plot
+grid.arrange(plot.sa1_supra, plot.sa1_sub, plot.sa3_supra, plot.sa3_sub, nrow=2)
+```
+
+###Figure 3 Bonus: Observed and predicted distribution of microbial taxa for each individual metacommunity
+The following are plots just as above but not averaged across individual metacommunities.
+```{r, echo=FALSE, error=FALSE, warning=FALSE, results=FALSE, message=FALSE}
+tax.focus <- c('SR1_3', 'SR1_2', 'Treponema_sp.1', 'Porphyromonas_gingivalis', 'Tannerella_sp.1', 'Tannerella_forsythia', 'Rothia_dentocariosa', 'Streptococcus_sanguinis', 'Abiotrophia_defectiva', 'Scardovia_wiggsiae', 'Streptococcus_mutans', 'Treponema_denticola')
+tax.focus <- data.frame(cbind(tax.focus, seq(from = 97, to = 96+length(tax.focus))))
+colnames(tax.focus) <- c('OTU', 'code')
+
+#Define plotting function
+sncm.plot <- function(x1){
+  dat.f <- subset(x1, OTU %in% tax.focus$OTU)
+  dat.f <- merge(dat.f, tax.focus, by.x='OTU', by.y='OTU', all=FALSE)
+  m.fit <- with(x1, nlsLM(freq ~ pbeta(1/min.seq, min.seq*m*p, min.seq*m*(1-p), lower.tail=FALSE), start=list(m=0.1)))
+  fun.pred.1 <- function(x){pbeta(1/min.seq, min.seq*coef(m.fit)*x, min.seq*coef(m.fit)*(1-x), lower.tail=FALSE)}
+  plot.x <- ggplot(x1, aes(x=p, y=freq)) +
+    geom_point() +
+  	geom_point(aes(x=p, y=freq), data=dat.f, colour='white') +
+  	geom_point(aes(x=p, y=freq, shape=code), data=dat.f, colour='red', size=4) +
+  	scale_shape_manual(values=as.numeric(as.character(dat.f$code))) +
+  	stat_function(data=x1, aes(x=p, y=freq), fun=fun.pred.1, colour='#0072B2') +
+  	scale_x_log10() +
+  	ylab("Occurrence frequency") +
+  	xlab("log(Mean Relative Abundance)") +
+  	ggtitle(paste(unique(x1$Subject), unique(x1$Habitat_Class), unique(x1$Tooth_Aspect), sep=' ')) +
+  	coord_cartesian(ylim=c(-0.025,1.025)) +
+  	theme_bw() +
+  	theme(panel.grid.major = element_blank(),
+     panel.grid.minor = element_blank(),
+     panel.border = element_blank(),
+     axis.line.x = element_line(color="black"),
+     axis.line.y = element_line(color="black"),
+     axis.title.x = element_text(colour='black'),
+     axis.text.x = element_text(colour='black'),
+     axis.title.y = element_text(colour='black'),
+     axis.text.y = element_text(colour='black'),
+     legend.position='none')
+  return(plot.x)
+}
+
+#Compile list of plots
+res.list <- list()
+for(i in 1:length(unique(ncm.preds$Metacommunity))){
+  meta.i <- unique(ncm.preds$Metacommunity)[i]
+  dat.i <- subset(ncm.preds, Metacommunity==meta.i)
+  res.list[[i]] <- sncm.plot(dat.i)
+}
+```
+```{r, echo=FALSE, error=FALSE, warning=FALSE}
+#Plots
+for(i in 1:length(res.list)){
+  print(res.list[[i]])
+}
+```
+
+#Part 3: Deviations from the neutral model
+We next wanted to investigate whether taxa deviated consistently from the predictions of the model across individuals, occurring either more or less frequently (i.e. being detected in a greater or lesser number of samples) than expected given their average abundance across samples. Taxa that consistently are found more frequently than expected given their average abundance may be under strong positive selection by the host environment or have particularly high dispersal rates, while the oppositie may be true for taxa found less frequently than expected given their average abundance.
+
+For the following two plots, each open point represents the deviation/residuals from the model prediction for each taxa within each subject. Solid red points represent the mean while error bars represent the standard error. There is a dashed vertical line at zero to indicate the model prediction; points to the right of this line represent taxa that are found more frequently than expected, while points to the left of this line represent taxa that are found less frequently than expected.
+
+###Figure X: Deviations from neutral model in SUPRAgingival habitats across subjects
+```{r, echo=FALSE, error=FALSE, warning=FALSE, fig.height=42}
+dat <- subset(ncm.preds, Habitat_Class=='Supra')
+x1 <- with(dat, aggregate(pred.res, list(OTU), mean))[,2]
+mres <- as.data.frame(cbind(unique(dat$OTU), x1))
+mres$x1 <- as.numeric(as.character(mres$x1))
+mres <- mres[with(mres, order(x1)), ]
+dat$OTU <- factor(dat$OTU, levels=mres$V1)
+
+ggplot(dat, aes(x=OTU, y=pred.res)) +
+	geom_hline(yintercept=0, colour='black', linetype='dashed') +
+	geom_point(shape=1, colour='grey50') +
+	stat_summary(fun.data = mean_se, geom = "errorbar", position=position_dodge(0.8), width=0.1, colour='#e41a1c') +
+	stat_summary(fun.y = mean, geom = "point", position=position_dodge(0.8), colour='#e41a1c') +
+	ylab("Deviation from predicted occurrence frequency") +
+	xlab("Taxa") +
+	coord_flip() +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   strip.background = element_blank(),
+	   strip.text.x = element_text(colour='black'),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black'),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),,
+	   legend.position='none',
+	   legend.key = element_blank())
+```
+
+###Figure X: Deviations from neutral model in SUBgingival habitats across subjects
+```{r, echo=FALSE, error=FALSE, warning=FALSE, fig.height=24}
+dat <- subset(ncm.preds, Habitat_Class=='Sub')
+x1 <- with(dat, aggregate(pred.res, list(OTU), mean))[,2]
+mres <- as.data.frame(cbind(unique(dat$OTU), x1))
+mres$x1 <- as.numeric(as.character(mres$x1))
+mres <- mres[with(mres, order(x1)), ]
+dat$OTU <- factor(dat$OTU, levels=mres$V1)
+
+ggplot(dat, aes(x=OTU, y=pred.res)) +
+	geom_hline(yintercept=0, colour='black', linetype='dashed') +
+	geom_point(shape=1, colour='grey50') +
+	stat_summary(fun.data = mean_se, geom = "errorbar", position=position_dodge(0.8), width=0.1, colour='#e41a1c') +
+	stat_summary(fun.y = mean, geom = "point", position=position_dodge(0.8), colour='#e41a1c') +
+	ylab("Deviation from predicted occurrence frequency") +
+	xlab("Taxa") +
+	coord_flip() +
+	theme_bw() +
+	theme(panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+	   panel.border = element_blank(),
+	   strip.background = element_blank(),
+	   strip.text.x = element_text(colour='black'),
+	   axis.line.x = element_line(color="black"),
+       axis.line.y = element_line(color="black"),
+	   axis.title.x = element_text(colour='black'),
+	   axis.text.x = element_text(colour='black'),
+	   axis.title.y = element_text(colour='black'),
+	   axis.text.y = element_text(colour='black'),,
+	   legend.position='none',
+	   legend.key = element_blank())
+```
+
+
